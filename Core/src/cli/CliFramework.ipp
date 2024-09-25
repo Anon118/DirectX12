@@ -1,6 +1,6 @@
 #include "CliFramework.h"
 #include "WrapCli11.h"
-#include <magic_enum.hpp>
+#include "magic_enum.hpp"
 #include <Core/src/crn/Ranges.h>
 
 namespace rn = std::ranges;

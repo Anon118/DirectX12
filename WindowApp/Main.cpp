@@ -7,6 +7,7 @@
 #include <format>
 #include <ranges>
 #include "CliOptions.h"
+#include "App.h"
 
 using namespace chil;
 using namespace std::string_literals;
@@ -30,51 +31,30 @@ int WINAPI WinMain(
 	PSTR pCmdLine,
 	int nCmdShow)
 {
-	Boot();
-
-	if (auto code = opt::Init()) {
-		if (*code == 0) {
-			MessageBoxA(nullptr, opt::GetDiagnostics().c_str(), "Command Line Help",
-				MB_ICONINFORMATION | MB_APPLMODAL | MB_SETFOREGROUND);
-		}
-		else {
-			MessageBoxA(nullptr, opt::GetDiagnostics().c_str(), "Command Line Parse Error",
-				MB_ICONERROR | MB_APPLMODAL | MB_SETFOREGROUND);
-		}
-		return *code;
+	try {
+		Boot();
+		auto pWindow = ioc::Get().Resolve<win::IWindow>();
+		return app::Run(*pWindow);
 	}
-	auto& opts = opt::Get();
-
-	if (opts.nonDefault) {
-		chilog.info(std::format(L"non-default: {}", *opts.nonDefault));
+	catch (const std::exception& e) {
+		chilog.error(utl::ToWide(e.what())).no_line().no_trace();
+		MessageBoxA(nullptr, e.what(), "Error", MB_ICONERROR | MB_SETFOREGROUND);
 	}
+	return -1;
 
-	for (auto i : *opts.list) {
-		chilog.info(std::format(L"listed: {}", i));
-	}
+	//auto windowPtrs = vi::iota(0, 1) |
+	//	vi::transform([](auto i) {return ioc::Get().Resolve<win::IWindow>(); }) |
+	//	rn::to<std::vector>();
 
-	if (opts.pair) {
-		chilog.info(std::format(L"paired:[{}, {}]", opts.pair->first, utl::ToWide(opts.pair->second)));
-	}
+	//int x = 0;
+	//while (!windowPtrs.empty()) {
+	//	std::erase_if(windowPtrs, [](auto& p) {return p->IsClosing(); });
+	//	for (auto& p : windowPtrs) {
+	//		p->SetTitle(std::format(L"Happy Window [{:*<{}}]", L'*', x + 1));
+	//	}
+	//	x = (x + 1) % 20;
+	//	std::this_thread::sleep_for(50ms);
+	//}
 
-	if (opts.shitTheBed) {
-		chilog.error(L"consider the bed thoroughly shat upon");
-		return -69;
-	}
-
-	auto windowPtrs = vi::iota(0, *opts.numWindows) |
-		vi::transform([](auto i) {return ioc::Get().Resolve<win::IWindow>(); }) |
-		rn::to<std::vector>();
-
-	int x = 0;
-	while (!windowPtrs.empty()) {
-		std::erase_if(windowPtrs, [](auto& p) {return p->IsClosing(); });
-		for (auto& p : windowPtrs) {
-			p->SetTitle(std::format(L"Happy Window [{:*<{}}]", L'*', x + 1));
-		}
-		x = (x + 1) % 20;
-		std::this_thread::sleep_for(50ms);
-	}
-
-	return 0;
+	//return 0;
 }
